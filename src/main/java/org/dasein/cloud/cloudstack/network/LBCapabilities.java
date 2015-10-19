@@ -60,27 +60,27 @@ public class LBCapabilities extends AbstractCapabilities<CSCloud> implements Loa
 
     @Override
     public int getMaxPublicPorts() throws CloudException, InternalException {
-        return 0;
+        return LIMIT_UNLIMITED;
     }
 
     @Override
     public int getMaxHealthCheckTimeout() throws CloudException, InternalException {
-        return 0;
+        return 60;
     }
 
     @Override
     public int getMinHealthCheckTimeout() throws CloudException, InternalException {
-        return 0;
+        return 2;
     }
 
     @Override
     public int getMaxHealthCheckInterval() throws CloudException, InternalException {
-        return 0;
+        return 20940;
     }
 
     @Override
     public int getMinHealthCheckInterval() throws CloudException, InternalException {
-        return 0;
+        return 1;
     }
 
     @Nonnull
@@ -113,7 +113,7 @@ public class LBCapabilities extends AbstractCapabilities<CSCloud> implements Loa
     @Nonnull
     @Override
     public Requirement healthCheckRequiresPort() throws CloudException, InternalException {
-        return Requirement.REQUIRED;
+        return Requirement.NONE;
     }
 
     @Nonnull
