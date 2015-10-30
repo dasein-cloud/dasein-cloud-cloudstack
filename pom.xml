@@ -47,7 +47,7 @@
         <connection>scm:git:git://github.com/dasein-cloud/dasein-cloud-cloudstack.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/dasein-cloud/dasein-cloud-cloudstack.git</developerConnection>
         <url>http://github.com/dasein-cloud/dasein-cloud-cloudstack</url>
-        <tag>dasein-cloud-cloudstack-2015.10.4</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <dependencies>
