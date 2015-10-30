@@ -152,6 +152,12 @@ public class VMCapabilities extends AbstractCapabilities<CSCloud> implements Vir
 
     @Nonnull
     @Override
+    public String[] getVirtualMachineReservedUserNames() {
+        return new String[0];
+    }
+
+    @Nonnull
+    @Override
     public Requirement identifyDataCenterLaunchRequirement() throws CloudException, InternalException {
         return Requirement.REQUIRED;
     }
