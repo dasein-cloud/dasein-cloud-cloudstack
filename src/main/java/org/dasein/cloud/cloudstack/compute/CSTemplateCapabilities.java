@@ -146,7 +146,7 @@ public class CSTemplateCapabilities extends AbstractCapabilities<CSCloud> implem
 
     @Override
     public boolean supportsImageRemoval() throws CloudException, InternalException {
-        return false;
+        return true;
     }
 
     @Override
