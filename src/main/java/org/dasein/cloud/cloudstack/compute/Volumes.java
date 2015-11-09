@@ -650,7 +650,7 @@ public class Volumes extends AbstractVolumeSupport<CSCloud> {
             return VolumeProduct.getInstance(offering.id, offering.name, offering.description, VolumeType.HDD);
         }
         else {
-            return VolumeProduct.getInstance(offering.id, offering.name, offering.description, VolumeType.HDD, new Storage<>(offering.diskSize, Storage.GIGABYTE));
+            return VolumeProduct.getInstance(offering.id, offering.name, offering.description, VolumeType.HDD, new Storage<>(offering.diskSize, Storage.GIGABYTE)).withMaxVolumeSize(new Storage<>(offering.diskSize, Storage.GIGABYTE)).withMinVolumeSize(new Storage<>(offering.diskSize, Storage.GIGABYTE));
         }
     }
 
