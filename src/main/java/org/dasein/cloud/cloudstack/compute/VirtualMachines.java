@@ -809,19 +809,29 @@ public class VirtualMachines extends AbstractVMSupport<CSCloud> {
         }
     }
 
+    @Nullable
+    @Override
+    public VirtualMachineProduct getProduct(@Nonnull String productId) throws InternalException, CloudException {
+        for (VirtualMachineProduct product : listAllProducts()) {
+            if( productId.equalsIgnoreCase( product.getProviderProductId()) ) {
+                return product;
+            }
+        }
+        return null;
+    }
+
     @Override
     public @Nonnull Iterable<VirtualMachineProduct> listAllProducts() throws InternalException, CloudException{
-        return listProducts(VirtualMachineProductFilterOptions.getInstance(), Architecture.I64);
+        return listProducts(VirtualMachineProductFilterOptions.getInstance());
     }
 
     @Nonnull
     @Override
     public Iterable<VirtualMachineProduct> listProducts(@Nonnull String machineImageId, @Nonnull VirtualMachineProductFilterOptions options) throws InternalException, CloudException {
-        // all CS products are dual architecture so it doesn't matter which arch to choose
-        return listProducts(options, Architecture.I64);
+        return listProducts(options);
     }
 
-    public Iterable<VirtualMachineProduct> listProducts(VirtualMachineProductFilterOptions options, Architecture architecture) throws InternalException, CloudException {
+    protected Iterable<VirtualMachineProduct> listProducts(VirtualMachineProductFilterOptions options) throws InternalException, CloudException {
         APITrace.begin(getProvider(), "VM.listProducts");
         try {
             Cache<VirtualMachineProduct> cache = Cache.getInstance(getProvider(), "ServerProducts", VirtualMachineProduct.class, CacheLevel.REGION_ACCOUNT, new TimePeriod<Hour>(4, TimePeriod.HOUR));

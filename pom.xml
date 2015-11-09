@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <!--
         Copyright (C) 2010-2013 enstratius, Inc. (http://www.enstratius.com)
 
@@ -141,7 +142,7 @@
                         <link>http://www.dasein.org/api/dasein-utils/</link>
                     </links>
                     <stylesheetfile>dasein-javadoc.css</stylesheetfile>
-                    <footer />
+                    <footer/>
                 </configuration>
             </plugin>
             <plugin>
