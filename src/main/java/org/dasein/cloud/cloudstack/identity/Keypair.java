@@ -18,18 +18,11 @@
 
 package org.dasein.cloud.cloudstack.identity;
 
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.OperationNotSupportedException;
-import org.dasein.cloud.ProviderContext;
-import org.dasein.cloud.Requirement;
+import org.dasein.cloud.*;
 import org.dasein.cloud.cloudstack.CSCloud;
 import org.dasein.cloud.cloudstack.CSMethod;
 import org.dasein.cloud.cloudstack.Param;
-import org.dasein.cloud.identity.SSHKeypair;
-import org.dasein.cloud.identity.ServiceAction;
-import org.dasein.cloud.identity.ShellKeyCapabilities;
-import org.dasein.cloud.identity.ShellKeySupport;
+import org.dasein.cloud.identity.*;
 import org.dasein.cloud.util.APITrace;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -49,11 +42,11 @@ import java.util.Locale;
  * @since 2012.02
  * @version 2012.02
  */
-public class Keypair implements ShellKeySupport {
+public class Keypair extends AbstractShellKeySupport<CSCloud> {
     private CSCloud provider;
     private transient volatile KeypairCapabilities capabilities;
 
-    Keypair(@Nonnull CSCloud provider) { this.provider = provider; }
+    Keypair(@Nonnull CSCloud provider) { super(provider); }
 
     @Override
     public @Nonnull SSHKeypair createKeypair(@Nonnull String name) throws InternalException, CloudException {
@@ -66,12 +59,12 @@ public class Keypair implements ShellKeySupport {
             NodeList matches = doc.getElementsByTagName("keypair");
 
             for( int i=0; i<matches.getLength(); i++ ) {
-                SSHKeypair key = toKeypair(provider.getContext(), matches.item(i));
+                SSHKeypair key = toKeypair(matches.item(i));
                 if( key != null ) {
                     return key;
                 }
             }
-            throw new CloudException("Request did not error, but no keypair was generated");
+            throw new GeneralCloudException("Request did not error, but no keypair was generated", CloudErrorType.GENERAL);
         }
         finally {
             APITrace.end();
@@ -120,7 +113,7 @@ public class Keypair implements ShellKeySupport {
             );
             NodeList matches = doc.getElementsByTagName("sshkeypair");
             for( int i=0; i<matches.getLength(); i++ ) {
-                final SSHKeypair key = toKeypair(provider.getContext(), matches.item(i));
+                final SSHKeypair key = toKeypair(matches.item(i));
                 if( key != null ) {
                     return key;
                 }
@@ -130,12 +123,6 @@ public class Keypair implements ShellKeySupport {
         finally {
             APITrace.end();
         }
-    }
-
-    @Override
-    @Deprecated
-    public @Nonnull String getProviderTermForKeypair(@Nonnull Locale locale) {
-        return "SSH keypair";
     }
 
     @Nonnull @Override public ShellKeyCapabilities getCapabilities() throws CloudException, InternalException {
@@ -167,7 +154,7 @@ public class Keypair implements ShellKeySupport {
         try {
             final CSMethod method = new CSMethod(provider);
             Document doc = method.get(CSMethod.LIST_KEYPAIRS);
-            final List<SSHKeypair> keys = new ArrayList<SSHKeypair>();
+            final List<SSHKeypair> keys = new ArrayList<>();
 
             int numPages = 1;
             NodeList nodes = doc.getElementsByTagName("count");
@@ -193,7 +180,7 @@ public class Keypair implements ShellKeySupport {
                 }
                 NodeList matches = doc.getElementsByTagName("sshkeypair");
                 for( int i=0; i<matches.getLength(); i++ ) {
-                    SSHKeypair key = toKeypair(provider.getContext(), matches.item(i));
+                    SSHKeypair key = toKeypair(matches.item(i));
 
                     if( key != null ) {
                         keys.add(key);
@@ -212,15 +199,15 @@ public class Keypair implements ShellKeySupport {
         return new String[0];
     }
     
-    private @Nullable SSHKeypair toKeypair(@Nonnull ProviderContext ctx, @Nullable Node node) throws CloudException, InternalException {
+    private @Nullable SSHKeypair toKeypair(@Nullable Node node) throws CloudException, InternalException {
         if( node == null || !node.hasChildNodes() ) {
             return null;
         }
-        String regionId = ctx.getRegionId();
-
+        String regionId = getContext().getRegionId();
         if( regionId == null ) {
-            throw new CloudException("No region is part of this request");
+            throw new InternalException("No region is part of this request");
         }
+
         NodeList attributes = node.getChildNodes();
         SSHKeypair kp = new SSHKeypair();
         String privateKey = null;
@@ -248,7 +235,7 @@ public class Keypair implements ShellKeySupport {
             return null;
         }
         kp.setProviderRegionId(regionId);
-        kp.setProviderOwnerId(ctx.getAccountNumber());
+        kp.setProviderOwnerId(getContext().getAccountNumber());
         kp.setProviderKeypairId(name);
         kp.setName(name);
         kp.setFingerprint(fingerprint);

@@ -32,12 +32,7 @@ import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.OperationNotSupportedException;
-import org.dasein.cloud.ProviderContext;
-import org.dasein.cloud.ResourceStatus;
-import org.dasein.cloud.Tag;
+import org.dasein.cloud.*;
 import org.dasein.cloud.cloudstack.CSCloud;
 import org.dasein.cloud.cloudstack.CSException;
 import org.dasein.cloud.cloudstack.CSMethod;
@@ -338,12 +333,12 @@ public class Network extends AbstractVLANSupport<CSCloud> {
 
             String regionId = getContext().getRegionId();
             if( regionId == null ) {
-                throw new CloudException("No region was set for this request");
+                throw new GeneralCloudException("No region was set for this request", CloudErrorType.GENERAL);
             }
 
             String offering = getNetworkOffering(regionId);
             if( offering == null ) {
-                throw new CloudException("No offerings exist for " + getContext().getRegionId());
+                throw new GeneralCloudException("No offerings exist for " + getContext().getRegionId(), CloudErrorType.GENERAL);
             }
 
             List<Param> params = new ArrayList<Param>();
@@ -404,7 +399,7 @@ public class Network extends AbstractVLANSupport<CSCloud> {
                     }
                 }
             }
-            throw new CloudException("Creation requested failed to create a network without an error");
+            throw new GeneralCloudException("Creation requested failed to create a network without an error", CloudErrorType.GENERAL);
         }
         finally {
             APITrace.end();
@@ -507,21 +502,6 @@ public class Network extends AbstractVLANSupport<CSCloud> {
         return network;
     }
 
-    @Override
-    public @Nonnull String getProviderTermForNetworkInterface( @Nonnull Locale locale ) {
-        return "NIC";
-    }
-
-    @Override
-    public @Nonnull String getProviderTermForSubnet( @Nonnull Locale locale ) {
-        return "network";
-    }
-
-    @Override
-    public @Nonnull String getProviderTermForVlan( @Nonnull Locale locale ) {
-        return "network";
-    }
-
     @Nonnull @Override
     public Collection<InternetGateway> listInternetGateways( @Nullable String vlanId ) throws CloudException, InternalException {
         return Collections.emptyList();
@@ -556,7 +536,7 @@ public class Network extends AbstractVLANSupport<CSCloud> {
 
                 }
             }
-            for( RoutingTable table : listRoutingTables(inVlanId) ) {
+            for( RoutingTable table : listRoutingTablesForVlan(inVlanId) ) {
                 resources.add(table);
             }
             Iterable<VirtualMachine> vms = getProvider().getComputeServices().getVirtualMachineSupport().listVirtualMachines();

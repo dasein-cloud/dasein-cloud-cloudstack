@@ -47,11 +47,7 @@ import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
-import org.dasein.cloud.CloudErrorType;
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.ContextRequirements;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.ProviderContext;
+import org.dasein.cloud.*;
 import org.dasein.cloud.util.APITrace;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -94,7 +90,7 @@ public class CSMethod {
         catch (UnsupportedEncodingException ignore) {}
 
         if( ctx == null ) {
-            throw new CloudException("No context was set for this request");
+            throw new GeneralCloudException("No context was set for this request", CloudErrorType.GENERAL);
         }
         try {
             StringBuilder str = new StringBuilder();
@@ -294,10 +290,10 @@ public class CSMethod {
                 return parseResponse(status, EntityUtils.toString(entity));
             }
             catch( NoHttpResponseException e ) {
-                throw new CloudException("No answer from endpoint: " + e.getMessage());
+                throw new CommunicationException("No answer from endpoint: " + e.getMessage());
             }
             catch( IOException e ) {
-                throw new CloudException("IOException getting stream: " + e.getMessage());
+                throw new CommunicationException("IOException getting stream: " + e.getMessage());
             }
         }
         finally {
@@ -435,19 +431,19 @@ public class CSMethod {
                 if( wire.isDebugEnabled() ) {
                     wire.debug(xml);
                 }
-                throw new CloudException(e);
+                throw new CommunicationException(" " + e.getMessage());
             }
             catch( ParserConfigurationException e ) {
                 if( wire.isDebugEnabled() ) {
                     wire.debug(xml);
                 }
-                throw new CloudException(e);
+                throw new CommunicationException(" " + e.getMessage());
             }
             catch( SAXException e ) {
                 if( wire.isDebugEnabled() ) {
                     wire.debug(xml);
                 }
-                throw new CloudException("Received error code from server [" + code + "]: " + xml);
+                throw new CommunicationException("Received error code from server [" + code + "]: " + xml);
             }
         }
         finally {

@@ -28,6 +28,7 @@ import java.util.Properties;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
+import org.dasein.cloud.ResourceNotFoundException;
 import org.dasein.cloud.dc.AbstractDataCenterServices;
 import org.dasein.cloud.dc.DataCenter;
 import org.dasein.cloud.dc.DataCenterCapabilities;
@@ -199,7 +200,7 @@ public class CSTopology extends AbstractDataCenterServices<CSCloud> {
                 Region region = getRegion(regionId);
 
                 if( region == null ) {
-                    throw new CloudException("No such region: " + regionId);
+                    throw new ResourceNotFoundException("region", regionId);
                 }
                 DataCenter zone = new DataCenter();
 
@@ -227,7 +228,7 @@ public class CSTopology extends AbstractDataCenterServices<CSCloud> {
             if( regions == null ) {
                 Document doc = new CSMethod(getProvider()).get(LIST_ZONES, new Param("available", "true"));
 
-                regions = new ArrayList<Region>();
+                regions = new ArrayList<>();
                 NodeList matches = doc.getElementsByTagName("zone");
                 for( int i=0; i<matches.getLength(); i++ ) {
                     Region r = toRegion(matches.item(i));

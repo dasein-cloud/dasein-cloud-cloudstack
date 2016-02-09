@@ -26,11 +26,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.OperationNotSupportedException;
-import org.dasein.cloud.ResourceStatus;
-import org.dasein.cloud.Tag;
+import org.dasein.cloud.*;
 import org.dasein.cloud.cloudstack.CSCloud;
 import org.dasein.cloud.cloudstack.CSException;
 import org.dasein.cloud.cloudstack.CSMethod;
@@ -112,7 +108,7 @@ public class SecurityGroup extends AbstractFirewallSupport<CSCloud> {
             getProvider().waitForJob(doc, "Authorize rule");
             final String id = getRuleId(firewallId, direction, permission, protocol, sourceEndpoint, destinationEndpoint, beginPort, endPort);
             if( id == null ) {
-                throw new CloudException("Unable to identify newly created firewall rule ID");
+                throw new GeneralCloudException("Unable to identify newly created firewall rule ID", CloudErrorType.GENERAL);
             }
             return id;
         }
@@ -191,7 +187,7 @@ public class SecurityGroup extends AbstractFirewallSupport<CSCloud> {
                 groupId = matches.item(0).getFirstChild().getNodeValue();
             }
             if( groupId == null ) {
-                throw new CloudException("Failed to create firewall");
+                throw new GeneralCloudException("Failed to create firewall", CloudErrorType.GENERAL);
             }
 
             // create initial rules if requested
@@ -351,7 +347,7 @@ public class SecurityGroup extends AbstractFirewallSupport<CSCloud> {
         try {
             String regionId = getContext().getRegionId();
             if( regionId == null ) {
-                throw new CloudException("No region was set for this request");
+                throw new GeneralCloudException("No region was set for this request", CloudErrorType.GENERAL);
             }
             return getProvider().getDataCenterServices().supportsSecurityGroups(regionId, false);
         }
@@ -581,7 +577,7 @@ public class SecurityGroup extends AbstractFirewallSupport<CSCloud> {
         String regionId = getContext().getRegionId();
 
         if( regionId == null ) {
-            throw new CloudException("No region was specified for this request");
+            throw new GeneralCloudException("No region was specified for this request", CloudErrorType.GENERAL);
         }
         NodeList attributes = node.getChildNodes();
         Firewall firewall = new Firewall();

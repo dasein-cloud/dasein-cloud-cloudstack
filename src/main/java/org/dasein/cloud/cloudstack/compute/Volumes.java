@@ -74,7 +74,7 @@ public class Volumes extends AbstractVolumeSupport<CSCloud> {
             VirtualMachine vm = getProvider().getComputeServices().getVirtualMachineSupport().getVirtualMachine(serverId);
 
             if( vm == null ) {
-                throw new CloudException("No such virtual machine: " + serverId);
+                throw new InternalException("No such virtual machine: " + serverId);
             }
             long timeout = System.currentTimeMillis() + (CalendarWrapper.MINUTE * 10L);
 
@@ -87,10 +87,10 @@ public class Volumes extends AbstractVolumeSupport<CSCloud> {
                 try { vm = getProvider().getComputeServices().getVirtualMachineSupport().getVirtualMachine(serverId); }
                 catch( Throwable ignore ) { }
                 if( vm == null ) {
-                    throw new CloudException("Virtual machine " + serverId + " disappeared waiting for it to enter an attachable state");
+                    throw new GeneralCloudException("Virtual machine " + serverId + " disappeared waiting for it to enter an attachable state", CloudErrorType.GENERAL);
                 }
             }
-            List<Param> params = new ArrayList<Param>();
+            List<Param> params = new ArrayList<>();
             params.add(new Param("id", volumeId));
             params.add(new Param("virtualMachineId", serverId));
 
@@ -104,7 +104,7 @@ public class Volumes extends AbstractVolumeSupport<CSCloud> {
             Document doc = new CSMethod(getProvider()).get(ATTACH_VOLUME, params);
 
             if( doc == null ) {
-                throw new CloudException("No such volume or server");
+                throw new GeneralCloudException("No such volume or server", CloudErrorType.GENERAL);
             }
             getProvider().waitForJob(doc, "Attach Volume");
         }
@@ -196,14 +196,14 @@ public class Volumes extends AbstractVolumeSupport<CSCloud> {
                     }
                 }
                 if( product == null && size.longValue() < 1L ) {
-                    throw new CloudException("No offering matching " + options.getVolumeProductId());
+                    throw new InternalException("No offering matching " + options.getVolumeProductId());
                 }
             }
             else {
                 Snapshot snapshot = getProvider().getComputeServices().getSnapshotSupport().getSnapshot(snapshotId);
 
                 if( snapshot == null ) {
-                    throw new CloudException("No such snapshot: " + snapshotId);
+                    throw new InternalException("No such snapshot: " + snapshotId);
                 }
                 int s = snapshot.getSizeInGb();
 
@@ -224,7 +224,7 @@ public class Volumes extends AbstractVolumeSupport<CSCloud> {
                         new Param("zoneId", ctx.getRegionId()),
                         new Param("size", String.valueOf(size.longValue()))
                 }; */
-                throw new CloudException("A suitable snapshot or disk offering could not be found to pass to CloudStack createVolume request");
+                throw new InternalException("A suitable snapshot or disk offering could not be found to pass to CloudStack createVolume request");
             }
             else if( snapshotId != null ) {
                 params.add(new Param("snapshotId", snapshotId));
@@ -259,7 +259,7 @@ public class Volumes extends AbstractVolumeSupport<CSCloud> {
                 }
             }
             if( volumeId == null ) {
-                throw new CloudException("Failed to create volume");
+                throw new GeneralCloudException("Failed to create volume", CloudErrorType.GENERAL);
             }
             Document responseDoc = getProvider().waitForJob(doc, "Create Volume");
             if (responseDoc != null){

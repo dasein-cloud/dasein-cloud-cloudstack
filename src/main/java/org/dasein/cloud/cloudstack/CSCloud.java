@@ -29,12 +29,7 @@ import java.util.List;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
-import org.dasein.cloud.AbstractCloud;
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.ContextRequirements;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.ProviderContext;
-import org.dasein.cloud.Tag;
+import org.dasein.cloud.*;
 import org.dasein.cloud.cloudstack.compute.CSComputeServices;
 import org.dasein.cloud.cloudstack.identity.CSIdentityServices;
 import org.dasein.cloud.cloudstack.network.CSNetworkServices;
@@ -189,7 +184,7 @@ public class CSCloud extends AbstractCloud {
                 }
             }
             catch (Throwable e) {
-                throw new CloudException("Unable to get CloudStack version for "+getCloudName(), e);
+                throw new CommunicationException("Unable to get CloudStack version for "+getCloudName(), e);
             }
             finally {
                 APITrace.end();
@@ -468,11 +463,11 @@ public class CSCloud extends AbstractCloud {
                                 throw new CSException(error);
                             }
                             else {
-                                throw new CloudException(str);
+                                throw new CommunicationException(str);
                             }
                         }
                         else {
-                            throw new CloudException(jobName + " failed with an unexplained error.");
+                            throw new CommunicationException(jobName + " failed with an unexplained error.");
                         }
                     }
                 }
@@ -672,26 +667,22 @@ public class CSCloud extends AbstractCloud {
     }
 
     public @Nonnull List<String> getZoneHypervisors(String regionId) throws CloudException, InternalException {
-        ProviderContext ctx = getContext();
-        if( ctx == null ) {
-            throw new CloudException("No context was set for this request");
-        }
         String cacheName = "hypervisorCache";
         Cache<String> hypervisorCache = Cache.getInstance(this, cacheName, String.class, CacheLevel.REGION_ACCOUNT, new TimePeriod<Day>(1, TimePeriod.DAY));
 
-        List<String> zoneHypervisors = Iterables.toList(hypervisorCache.get(ctx));
+        List<String> zoneHypervisors = Iterables.toList(hypervisorCache.get(getContext()));
         if( zoneHypervisors != null ) {
             return zoneHypervisors;
         }
         try {
-            Document doc = new CSMethod(this).get(LIST_HYPERVISORS, new Param("zoneid", ctx.getRegionId()));
+            Document doc = new CSMethod(this).get(LIST_HYPERVISORS, new Param("zoneid", getContext().getRegionId()));
             NodeList nodes = doc.getElementsByTagName("name");
             zoneHypervisors = new ArrayList<String>();
             for( int i = 0; i < nodes.getLength(); i++ ) {
                 Node item = nodes.item(i);
                 zoneHypervisors.add(item.getFirstChild().getNodeValue().trim());
             }
-            hypervisorCache.put(ctx, zoneHypervisors);
+            hypervisorCache.put(getContext(), zoneHypervisors);
             return zoneHypervisors;
         }
         finally {

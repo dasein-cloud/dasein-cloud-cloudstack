@@ -25,14 +25,7 @@ import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
-import org.dasein.cloud.AsynchronousTask;
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.OperationNotSupportedException;
-import org.dasein.cloud.ProviderContext;
-import org.dasein.cloud.Requirement;
-import org.dasein.cloud.ResourceStatus;
-import org.dasein.cloud.Tag;
+import org.dasein.cloud.*;
 import org.dasein.cloud.cloudstack.CSCloud;
 import org.dasein.cloud.cloudstack.CSException;
 import org.dasein.cloud.cloudstack.CSMethod;
@@ -83,17 +76,12 @@ public class Templates extends AbstractImageSupport<CSCloud> {
     public void addImageShare(@Nonnull String providerImageId, @Nonnull String accountNumber) throws CloudException, InternalException {
         APITrace.begin(getProvider(), "Image.addImageShare");
         try {
-            ProviderContext ctx = getProvider().getContext();
-
-            if( ctx == null ) {
-                throw new CloudException("No context was set for this request");
-            }
             MachineImage img = getImage(providerImageId);
 
             if( img == null ) {
                 return;
             }
-            if( !ctx.getAccountNumber().equals(img.getProviderOwnerId())
+            if( !getContext().getAccountNumber().equals(img.getProviderOwnerId())
                     && !getProvider().getParentAccount().equalsIgnoreCase(img.getProviderOwnerId())) {
                 return;
             }
@@ -153,6 +141,7 @@ public class Templates extends AbstractImageSupport<CSCloud> {
     }
 
     private transient volatile CSTemplateCapabilities capabilities;
+
     @Override
     public ImageCapabilities getCapabilities() throws CloudException, InternalException {
         if( capabilities == null ) {
@@ -291,7 +280,7 @@ public class Templates extends AbstractImageSupport<CSCloud> {
             VirtualMachine server = getProvider().getComputeServices().getVirtualMachineSupport().getVirtualMachine(vmId);
 
             if( server == null ) {
-                throw new CloudException("No such server: " + vmId);
+                throw new InternalException("No such server: " + vmId);
             }
 
             boolean restart = false;
@@ -312,10 +301,10 @@ public class Templates extends AbstractImageSupport<CSCloud> {
 
             String rootVolumeId = getRootVolume(vmId);
             if( rootVolumeId == null ) {
-                throw new CloudException("No root volume is attached to the target server.");
+                throw new InvalidStateException("No root volume is attached to the target server.");
             }
 
-            List<Param> params = new ArrayList<Param>();
+            List<Param> params = new ArrayList<>();
             String name = validateName(options.getName());
             params.add(new Param("name", name));
             params.add(new Param("displayText", name));
@@ -347,7 +336,7 @@ public class Templates extends AbstractImageSupport<CSCloud> {
                 }
             }
             if( templateId == null ) {
-                throw new CloudException("Failed to provide a template ID.");
+                throw new GeneralCloudException("Failed to provide a template ID.", CloudErrorType.GENERAL);
             }
             Document responseDoc = getProvider().waitForJob(doc, "Create Template");
             if (responseDoc != null){
@@ -375,7 +364,7 @@ public class Templates extends AbstractImageSupport<CSCloud> {
             }
             MachineImage img = getImage(templateId);
             if( img == null ) {
-                throw new CloudException("Machine image job completed successfully, but no image " + templateId + " exists.");
+                throw new GeneralCloudException("Machine image job completed successfully, but no image " + templateId + " exists.", CloudErrorType.GENERAL);
             }
             if( task != null ) {
                 task.completeWithResult(img);
@@ -829,7 +818,7 @@ public class Templates extends AbstractImageSupport<CSCloud> {
             MachineImageFormat fmt = options.getBundleFormat();
 
             if( fmt == null ) {
-                throw new CloudException("You must specify the bundle format for the new bundle");
+                throw new InternalException("You must specify the bundle format for the new bundle");
             }
             String format;
             switch( options.getBundleFormat() ) {
@@ -863,13 +852,13 @@ public class Templates extends AbstractImageSupport<CSCloud> {
                 }
             }
             if( templateId == null ) {
-                throw new CloudException("No error was encountered during registration, but no templateId was returned");
+                throw new GeneralCloudException("No error was encountered during registration, but no templateId was returned", CloudErrorType.GENERAL);
             }
             getProvider().waitForJob(doc, "Create Template");
             MachineImage img = getImage(templateId);
 
             if( img == null ) {
-                throw new CloudException("Machine image " + templateId + " was created, but it does not exist");
+                throw new GeneralCloudException("Machine image " + templateId + " was reported as created, but it could not be found", CloudErrorType.GENERAL);
             }
             return img;
         }
@@ -887,11 +876,11 @@ public class Templates extends AbstractImageSupport<CSCloud> {
             MachineImage img = getImage(providerImageId);
 
             if( img == null ) {
-                throw new CloudException("No such machine image: " + providerImageId);
+                throw new ResourceNotFoundException("machine image", providerImageId);
             }
             if( !accountNumber.equals(img.getProviderOwnerId())
                       && !getProvider().getParentAccount().equalsIgnoreCase(img.getProviderOwnerId())) {
-                throw new CloudException(accountNumber + " cannot remove images belonging to " + img.getProviderOwnerId());
+                throw new InternalException(accountNumber + " cannot remove images belonging to " + img.getProviderOwnerId());
             }
             CSMethod method = new CSMethod(getProvider());
             Document doc;
