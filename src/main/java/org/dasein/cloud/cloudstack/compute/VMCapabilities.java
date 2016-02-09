@@ -216,15 +216,10 @@ public class VMCapabilities extends AbstractCapabilities<CSCloud> implements Vir
                 return Requirement.NONE;
             }
             if( getProvider().getVersion().greaterThan(CSVersion.CS21) ) {
-                ProviderContext ctx = getProvider().getContext();
-
-                if( ctx == null ) {
-                    throw new CloudException("No context was set for this request");
-                }
-                String regionId = ctx.getRegionId();
+                String regionId = getContext().getRegionId();
 
                 if( regionId == null ) {
-                    throw new CloudException("No region was set for this request");
+                    throw new InternalException("No region was set for this request");
                 }
                 return (getProvider().getDataCenterServices().zoneSupportsVlans(regionId) ? Requirement.REQUIRED : Requirement.NONE);
             }

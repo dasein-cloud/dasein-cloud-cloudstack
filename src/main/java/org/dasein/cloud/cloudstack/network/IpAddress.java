@@ -32,14 +32,7 @@ import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.OperationNotSupportedException;
-import org.dasein.cloud.ProviderContext;
-import org.dasein.cloud.Requirement;
-import org.dasein.cloud.ResourceStatus;
-import org.dasein.cloud.Tag;
-import org.dasein.cloud.Taggable;
+import org.dasein.cloud.*;
 import org.dasein.cloud.cloudstack.CSCloud;
 import org.dasein.cloud.cloudstack.CSException;
 import org.dasein.cloud.cloudstack.CSMethod;
@@ -93,7 +86,7 @@ public class IpAddress extends AbstractIpAddressSupport<CSCloud> {
             RawAddress privateIpAddress = null;
 
             if( server == null ) {
-                throw new CloudException("No such server: " + onServerId);
+                throw new InternalException("No such server: " + onServerId);
             }
             RawAddress[] addresses = server.getPrivateAddresses();
 
@@ -101,9 +94,9 @@ public class IpAddress extends AbstractIpAddressSupport<CSCloud> {
                 privateIpAddress = addresses[0];
             }
             if( privateIpAddress == null ) {
-                throw new CloudException("Could not determine a private IP address for " + onServerId);
+                throw new InternalException("Could not determine a private IP address for " + onServerId);
             }
-            List<Param> params = new ArrayList<Param>();
+            List<Param> params = new ArrayList<>();
             params.add(new Param("publicPort", String.valueOf(publicPort)));
             params.add(new Param("privatePort", String.valueOf(privatePort)));
             params.add(new Param("protocol", protocol.name()));
@@ -146,7 +139,7 @@ public class IpAddress extends AbstractIpAddressSupport<CSCloud> {
             try {
                 CSMethod method = new CSMethod(getProvider());
                 Document doc = method.get(LIST_PUBLIC_IP_ADDRESSES, new Param(isId() ? "id" : "ipAddress", addressId));
-                HashMap<String,LoadBalancer> loadBalancers = new HashMap<String,LoadBalancer>();
+                Map<String,LoadBalancer> loadBalancers = new HashMap<>();
                 LoadBalancerSupport support = getProvider().getNetworkServices().getLoadBalancerSupport();
                 LoadBalancer lb = (support == null ? null : support.getLoadBalancer(addressId));
                 if( lb != null ) {
@@ -199,7 +192,7 @@ public class IpAddress extends AbstractIpAddressSupport<CSCloud> {
         APITrace.begin(getProvider(), "IpAddress.listIpPool");
         try {
             if( version.equals(IPVersion.IPV4) ) {
-                HashMap<String,LoadBalancer> loadBalancers = new HashMap<String,LoadBalancer>();
+                Map<String,LoadBalancer> loadBalancers = new HashMap<>();
                 LoadBalancerSupport support = getProvider().getNetworkServices().getLoadBalancerSupport();
 
                 if( support != null ) {
@@ -250,12 +243,6 @@ public class IpAddress extends AbstractIpAddressSupport<CSCloud> {
         finally {
             APITrace.end();
         }
-    }
-
-    @Nonnull
-    @Override
-    public Future<Iterable<org.dasein.cloud.network.IpAddress>> listIpPoolConcurrently(@Nonnull IPVersion version, boolean unassignedOnly) throws InternalException, CloudException {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     @Override
@@ -331,7 +318,7 @@ public class IpAddress extends AbstractIpAddressSupport<CSCloud> {
             Document doc = new CSMethod(getProvider()).get(LIST_PORT_FORWARDING_RULES, params);
             
             if( doc == null ) {
-                throw new CloudException("No such IP address: " + addressId);
+                throw new InternalException("No such IP address: " + addressId);
             }
             NodeList matches = doc.getElementsByTagName("portforwardingrule");
             
@@ -425,8 +412,8 @@ public class IpAddress extends AbstractIpAddressSupport<CSCloud> {
     public @Nonnull String request(@Nonnull IPVersion version) throws InternalException, CloudException {
         APITrace.begin(getProvider(), "IpAddress.request");
         try {
-            // TODO: review capabilities
             if( !version.equals(IPVersion.IPV4) ) {
+                // this is already declared via the capabilities so unneccessary
                 throw new OperationNotSupportedException("Only IPv4 is currently supported");
             }
             //if( isBasic() ) {
@@ -452,7 +439,7 @@ public class IpAddress extends AbstractIpAddressSupport<CSCloud> {
                 id = matches.item(0).getFirstChild().getNodeValue();
             }
             if( id == null ) {
-                throw new CloudException("Failed to request an IP address without error");
+                throw new GeneralCloudException("Failed to request an IP address without error", CloudErrorType.GENERAL);
             }
             Document responseDoc = getProvider().waitForJob(doc, ASSOCIATE_IP_ADDRESS);
             if (responseDoc != null) {
@@ -494,8 +481,8 @@ public class IpAddress extends AbstractIpAddressSupport<CSCloud> {
     public @Nonnull String requestForVLAN(@Nonnull IPVersion version, @Nonnull String vlanId) throws InternalException, CloudException {
         APITrace.begin(getProvider(), "IpAddress.requestForVLAN");
         try {
-            // TODO review capabilities
             if( !version.equals(IPVersion.IPV4) ) {
+                // already declared in the capabilities
                 throw new OperationNotSupportedException("Only IPv4 is currently supported");
             }
             CSMethod method = new CSMethod(getProvider());
@@ -519,7 +506,7 @@ public class IpAddress extends AbstractIpAddressSupport<CSCloud> {
                 id = matches.item(0).getFirstChild().getNodeValue();
             }
             if( id == null ) {
-                throw new CloudException("Failed to request an IP address without error");
+                throw new GeneralCloudException("Failed to request an IP address without error", CloudErrorType.GENERAL);
             }
             Document responseDoc = getProvider().waitForJob(doc, ASSOCIATE_IP_ADDRESS);
             if (responseDoc != null) {
@@ -572,11 +559,6 @@ public class IpAddress extends AbstractIpAddressSupport<CSCloud> {
         }
     }
 
-    @Override
-    public boolean supportsVLANAddresses(@Nonnull IPVersion ofVersion) throws InternalException, CloudException {
-        return IPVersion.IPV4.equals(ofVersion);
-    }
-
     private @Nullable org.dasein.cloud.network.IpAddress toAddress(@Nullable Node node, @Nonnull Map<String,LoadBalancer> loadBalancers) throws InternalException, CloudException {
         if( node == null ) {
             return null;
@@ -584,7 +566,7 @@ public class IpAddress extends AbstractIpAddressSupport<CSCloud> {
         String regionId = getContext().getRegionId();
 
         if( regionId == null ) {
-            throw new CloudException("No region was set for this request");
+            throw new InternalException("No region was set for this request");
         }
         org.dasein.cloud.network.IpAddress address = new org.dasein.cloud.network.IpAddress();
         NodeList attributes = node.getChildNodes();

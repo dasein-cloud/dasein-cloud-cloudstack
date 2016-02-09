@@ -21,12 +21,7 @@ package org.dasein.cloud.cloudstack.compute;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.ProviderContext;
-import org.dasein.cloud.Requirement;
-import org.dasein.cloud.ResourceStatus;
-import org.dasein.cloud.Tag;
+import org.dasein.cloud.*;
 import org.dasein.cloud.cloudstack.CSCloud;
 import org.dasein.cloud.cloudstack.CSException;
 import org.dasein.cloud.cloudstack.CSMethod;
@@ -119,9 +114,9 @@ public class VirtualMachines extends AbstractVMSupport<CSCloud> {
             }
             vm = getVirtualMachine(vmId);
             if (!vm.getCurrentState().equals(VmState.STOPPED)) {
-                throw new CloudException("Unable to stop vm for scaling");
+                throw new org.dasein.cloud.InvalidStateException("Unable to stop the VM for scaling");
             }
-            List<Param> params = new ArrayList<Param>();
+            List<Param> params = new ArrayList<>();
             params.add(new Param("id", vmId));
             params.add(new Param("serviceOfferingId", vm.getProductId()));
             int index = 0;
@@ -149,7 +144,7 @@ public class VirtualMachines extends AbstractVMSupport<CSCloud> {
                 }
             }
             if( jobId == null ) {
-                throw new CloudException("Could not scale server");
+                throw new GeneralCloudException("Could not scale server", CloudErrorType.GENERAL);
             }
             Document responseDoc = getProvider().waitForJob(doc, "Scale Server");
 
@@ -206,7 +201,7 @@ public class VirtualMachines extends AbstractVMSupport<CSCloud> {
             }
             vm = getVirtualMachine(vmId);
             if (!vm.getCurrentState().equals(VmState.STOPPED)) {
-                throw new CloudException("Unable to stop vm for scaling");
+                throw new InvalidStateException("Unable to stop the VM for scaling");
             }
             Document doc = new CSMethod(getProvider()).get(RESIZE_VIRTUAL_MACHINE,
                     new Param("id", vmId),
@@ -227,7 +222,7 @@ public class VirtualMachines extends AbstractVMSupport<CSCloud> {
                 }
             }
             if( jobId == null ) {
-                throw new CloudException("Could not scale server");
+                throw new GeneralCloudException("Could not scale server", CloudErrorType.GENERAL);
             }
             Document responseDoc = getProvider().waitForJob(doc, "Scale Server");
 
@@ -262,12 +257,6 @@ public class VirtualMachines extends AbstractVMSupport<CSCloud> {
             capabilities = new VMCapabilities(getProvider());
         }
         return capabilities;
-    }
-
-    @Nullable
-    @Override
-    public VMScalingCapabilities describeVerticalScalingCapabilities() throws CloudException, InternalException {
-        return VMScalingCapabilities.getInstance(false,true,Requirement.NONE,Requirement.NONE);
     }
 
     @Nullable
@@ -401,7 +390,7 @@ public class VirtualMachines extends AbstractVMSupport<CSCloud> {
 
             VirtualMachineProduct product = getProduct(id);
             if( product == null ) {
-                throw new CloudException("Invalid product ID: " + id);
+                throw new InternalException("Invalid product ID: " + id);
             }
 
             VirtualMachine vm ;
@@ -413,7 +402,7 @@ public class VirtualMachines extends AbstractVMSupport<CSCloud> {
             }
 
             // Set tags
-            List<Tag> tags = new ArrayList<Tag>();
+            List<Tag> tags = new ArrayList<>();
             Map<String, Object> meta = withLaunchOptions.getMetaData();
             for( Map.Entry<String, Object> entry : meta.entrySet() ) {
                 if( entry.getKey().equalsIgnoreCase("name") || entry.getKey().equalsIgnoreCase("description") ) {
@@ -608,7 +597,7 @@ public class VirtualMachines extends AbstractVMSupport<CSCloud> {
             }
         }
         else {
-            vlans = new ArrayList<String>();
+            vlans = new ArrayList<>();
             vlans.add(targetVlanId);
         }
         if( securityGroupIds != null && !securityGroupIds.isEmpty() ) {
@@ -667,7 +656,7 @@ public class VirtualMachines extends AbstractVMSupport<CSCloud> {
             }    
             */
         }
-        List<Param> params = new ArrayList<Param>();
+        List<Param> params = new ArrayList<>();
         params.add(new Param("zoneId", inZoneId));
         params.add(new Param("serviceOfferingId", prdId));
         params.add(new Param("templateId", imageId));
@@ -709,7 +698,7 @@ public class VirtualMachines extends AbstractVMSupport<CSCloud> {
             if( lastError == null ) {
                 throw lastError;
             }
-            throw new CloudException("Unable to identify a network into which a VM can be launched");
+            throw new InternalException("Unable to identify a network into which a VM can be launched");
         }
         else {
             return launch(new CSMethod(getProvider()).get(
@@ -743,7 +732,7 @@ public class VirtualMachines extends AbstractVMSupport<CSCloud> {
             }
         }
         if( serverId == null && jobId == null ) {
-            throw new CloudException("Could not launch server");
+            throw new GeneralCloudException("Could not launch server", CloudErrorType.GENERAL);
         }
         // TODO: very odd logic below; figure out what it thinks it is doing
 
@@ -768,7 +757,7 @@ public class VirtualMachines extends AbstractVMSupport<CSCloud> {
             vm = getVirtualMachine(serverId);
         }
         if( vm == null ) {
-            throw new CloudException("No virtual machine provided: " + serverId);
+            throw new GeneralCloudException("Unable to find the launched virtual machine: " + serverId, CloudErrorType.GENERAL);
         }
         return vm;
     }
@@ -1191,7 +1180,7 @@ public class VirtualMachines extends AbstractVMSupport<CSCloud> {
                     state = VmState.ERROR;
                 }
                 else {
-                    throw new CloudException("Unexpected server state: " + value);
+                    throw new InternalException("Unable to parse server state: " + value);
                 }
             }
             if( serverId != null && state != null ) {
@@ -1211,7 +1200,7 @@ public class VirtualMachines extends AbstractVMSupport<CSCloud> {
         if( node == null ) {
             return null;
         }
-        HashMap<String,String> properties = new HashMap<String,String>();
+        Map<String,String> properties = new HashMap<>();
         VirtualMachine server = new VirtualMachine();
         NodeList attributes = node.getChildNodes();
         String productId = null;
@@ -1259,7 +1248,6 @@ public class VirtualMachines extends AbstractVMSupport<CSCloud> {
             else if( name.equals("securitygroup") ) { // v2.2+
                 if( attribute.hasChildNodes() ) {
                     NodeList parts = attribute.getChildNodes();
-                    String sgId = null, sgName = null, sgDescription = null;
                     for( int j=0; j<parts.getLength(); j++ ) {
                         Node part = parts.item(j);
                         if( "id".equalsIgnoreCase(part.getNodeName()) ) {
@@ -1386,7 +1374,7 @@ public class VirtualMachines extends AbstractVMSupport<CSCloud> {
                     state = VmState.REBOOTING;
                 }
                 else {
-                    throw new CloudException("Unexpected server state: " + value);
+                    throw new InternalException("Unable to parse server state: " + value);
                 }
                 server.setCurrentState(state);
             }
